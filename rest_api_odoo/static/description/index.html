@@ -217,7 +217,7 @@
                 <li>First of all, we have to add a new parameter in odoo conf.
                     file.
                 </li>
-                <li><b>server_wide_modules = web, base, rest_api_odoo</b><br/>
+                <li><code>server_wide_modules = web, base, rest_api_odoo</code><br/>
                     - This will allow us to send request to server without
                     selecting database first.<br/>- Incase if you have to
                     uninstall the module , you have to remove this parameter.
@@ -251,10 +251,10 @@
                 <li>Next you have to select the database and login.</li>
                 <li>We have attached <b>Postman collections</b> through which
                     you can
-                    authenticate rest api.
+                    authenticate REST api.
                 </li>
             <li>First, extract the <b>zip</b> file. Then, you will obtain the JSON-format file, which you can directly import into <b>POSTMAN.</b></li>
-                <li>The url format will be like this - <b>http://cybrosys:8016/odoo_connect</b>
+                <li>The url format will be like this - <code>http://cybrosys:8016/odoo_connect</code>
                     Replace 'cybrosys:8016' with your localhost port number.
                 </li>
                 <li>You have to provide database name, username and password
@@ -266,9 +266,9 @@
                 <li>This key will be used when sending api requests to
                     database.
                 </li>
-                <li>The response will be like this - <b> {"Status": "auth
+                <li>The response will be like this - <code>{"Status": "auth
                     successful", "User": "Mitchell Admin", "api-key":
-                    "66c2ebab-d4dc-42f0-87d0-d1646e887569"}.</b></li>
+                    "66c2ebab-d4dc-42f0-87d0-d1646e887569"}</code>.</li>
             </ul>
             </p>
             <img src="assets/screenshots/screenshot_2.png"
@@ -307,7 +307,7 @@
             </h3>
             <p style="font-weight: 400; font-family: 'Montserrat', sans-serif; font-size: 14px;">
             <ul>
-                <li>You can send GET request to retrieve data from the
+                <li>You can send <code>GET</code> request to retrieve data from the
                     database.
                 </li>
                 <li>The postman collection has been provided with app files for
@@ -318,15 +318,16 @@
                 </li>
                 <li>Model can be passed as argument as the technical name , and
                     also if you want
-                    specific record you can provide the id as well.
+                    specific record you can provide any related fields to the module as well.
                 </li>
-                <li>The format for GET method will be like this - <b>http://cybrosys:8016/send_request?model=res.partner&Id=10.</b>
+                <li>The format for GET method will be like this - <code>http://cybrosys:8016/send_request?model=res.partner&Id=10.</code>
                 </li>
                 <li>We can specify the fields inside the JSON data, and it will
-                    be like this - <b>{"fields": ["name", "email"]}.</b></li>
-                <li>This is the format of api response - <b>{"records": [{"id":
+                    be like this - <code>{"fields": ["name", "email"]}</code>.</li>
+                <li>This is the format of api response - <code>{"records": [{"id":
                     10, "email": "deco.addict82@example.com", "name": "Deco
-                    Addict"}]}.</b>
+                    Addict"}]}</code>. If no fields are passed , it will returns
+                    just the record's ID. To get all of the fields, set the fields to wildcard - <code>{"fields": ["*"]}</code>.
                 </li>
 
             </ul>
@@ -338,7 +339,7 @@
             </h3>
             <p style="font-weight: 400; font-family: 'Montserrat', sans-serif; font-size: 14px;">
             <ul>
-                <li>Using POST method , you can create new records in the
+                <li>Using <code>POST</code> method , you can create new records in the
                     database.
                 </li>
                 <li>Just make sure you enabled POST method for the model record
@@ -351,18 +352,18 @@
                 <li>You can make use of the postman collection that we have
                     added with app files.
                 </li>
-                <li>The format for sending POST request will be like this - <b>http://cybrosys:8016/send_request?model=res.partner.</b>
+                <li>The format for sending POST request will be like this - <code>http://cybrosys:8016/send_request?model=res.partner.</code>
                 </li>
-                <li>This is the format for JSON data - <b>{
+                <li>This is the format for JSON data - <code>{
                     "fields" :["name", "phone"] ,
                     "values": {"name": "abc",
                     "phone":"55962441552"
-                    } }.</b>
+                    } }.</code>
                 </li>
                 <li>Make sure the data entered in correct format otherwise you
                     will get <b>'Invalid JSON data' message.</b></li>
-                <li>Response will be in this format - <b>{"New resource":
-                    [{"id": 51, "name": "abc", "phone": "55962441552"}]}.</b>
+                <li>Response will be in this format - <code>{"New resource":
+                    [{"id": 51, "name": "abc", "phone": "55962441552"}]}</code>.
                 </li>
             </ul>
             </p>
@@ -373,7 +374,7 @@
                 Update Records
             </h3>
             <ul>
-                <li>Updation of records in the database can be done with PUT
+                <li>Updation of records in the database can be done with <code>PUT</code>
                     method.
                 </li>
                 <li>You have to provide the model and also the id or the record
@@ -383,14 +384,14 @@
                     will be always have to send request with your login
                     credentials. Otherwise, it will be  showing access denied.
                 </li>
-                <li>The format for sending PUT request will be like this - <b>http://cybrosys:8016/send_request?model=res.partner&Id=46.</b>
+                <li>The format for sending PUT request will be like this - <code>http://cybrosys:8016/send_request?model=res.partner&Id=46.</code>
                 </li>
                 <li>Here too you have to provide the JSON data through which the
                     updates will be done.
                 </li>
-                <li>The response format will be like this - <b>{"Updated
+                <li>The response format will be like this - <code>{"Updated
                     resource": [{"id": 46, "email": "abc@example.com", "name":
-                    "Toni"}]}.</b></li>
+                    "Toni"}]}</code>.</li>
             </ul>
             </p>
 
@@ -401,7 +402,7 @@
             </h3>
             <p style="font-weight: 400; font-family: 'Montserrat', sans-serif; font-size: 14px;">
             <ul>
-                <li>Database records can be deleted by sending DELETE method
+                <li>Database records can be deleted by sending <code>DELETE</code> method
                     request.
                 </li>
                 <li>For the deletion we have to provide the Model and the record
@@ -410,11 +411,11 @@
                 <li>Make sure you have permission to delete files for the
                     selected model in the rest api record.
                 </li>
-                <li>The delete request format will be like this - <b>http://cybrosys:8016/send_request?model=res.partner&Id=46.</b>
+                <li>The delete request format will be like this - <code>http://cybrosys:8016/send_request?model=res.partner&Id=46.</code>
                 </li>
-                <li> The response after successful deletion will be -<b>
+                <li> The response after successful deletion will be -<code>
                     {"Resource deleted": [{"id": 46, "email": "abc@example.com",
-                    "name": "Toni"}]}.</b></li>
+                    "name": "Toni"}]}</code>.</li>
             </ul>
             </p>
 
