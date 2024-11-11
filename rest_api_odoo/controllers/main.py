@@ -70,171 +70,143 @@ class RestApi(http.Controller):
     def generate_response(self, method, **query):
         """This function is used to generate the response based on the type
         of request and the parameters given"""
-        model = query.pop("model")
-        option = request.env["connection.api"].search(
-            [("model_id", "=", model)], limit=1
-        )
-        model_name = option.model_id.model
-        model_display_name = option.model_id.name
-
         try:
-            data = json.loads(request.httprequest.data)
-        except Exception:
-            data = {}
-
-        fields = []
-        if data:
-            for field in data["fields"]:
-                fields.append(field)        
-    
-        # Return records' ID by default if not specified
-        if not fields:
-            fields.append("id")
-
-        # Get all model's fields if wildcard is used
-        if "*" in fields:
-            fields = []
-            record_fields = request.env[str(model_name)].fields_get(
-                [], attributes=["type"]
+            model = query.pop("model")
+            option = request.env["connection.api"].search(
+                [("model_id", "=", model)], limit=1
             )
-            for field, value in record_fields.items():
-                value_type = value.get("type")
-                if not (value_type == "binary"):
-                    fields.append(field)
-        if not option:
-            return Response(
-                json.dumps(
-                    {
-                        "message": f"No Record Created for the model. Please contact your admininstrator to enable {method} method for {model_display_name} record."
-                    }
-                ),
-                status=403,
-            )
-        if method == "GET":
-            if not option.is_get:
-                return Response(
-                    json.dumps(
-                        {
-                            "message": f"Method not allowed. Please contact your admininstrator to enable {method} method for {model_display_name} record."
-                        }
-                    ),
-                    status=405,
-                )
-
-            domains = []
-            for key, value in query.items():
-                domains.append((key, "=", self.simplest_type(value)))
-            partner_records = request.env[str(model_name)].search_read(
-                domain=domains, fields=fields
-            )
-
-            return Response(
-                json.dumps({"records": self.sanitize_records(partner_records)})
-            )
-        if method == "POST":
-            if not option.is_post:
-                return Response(
-                    json.dumps(
-                        {
-                            "message": f"Method not allowed. Please contact your admininstrator to enable {method} method for {model_display_name} record."
-                        }
-                    ),
-                    status=405,
-                )
-            if not data or "values" not in data:
-                return Response(json.dumps({"message": "No Data Provided"}), status=403)
+            model_name = option.model_id.model
+            model_display_name = option.model_id.name
 
             try:
                 data = json.loads(request.httprequest.data)
+            except Exception:
+                data = {}
+
+            fields = []
+            if data:
+                for field in data["fields"]:
+                    fields.append(field)
+
+            # Return records' ID by default if not specified
+            if not fields:
+                fields.append("id")
+
+            # Get all model's fields if wildcard is used
+            if "*" in fields:
+                fields = []
+                record_fields = request.env[str(model_name)].fields_get(
+                    [], attributes=["type"]
+                )
+                for field, value in record_fields.items():
+                    value_type = value.get("type")
+                    if not (value_type == "binary"):
+                        fields.append(field)
+            if not option:
+                raise NotImplementedError("No Record Created for the model. ")
+            if method == "GET":
+                if not option.is_get:
+                    raise NameError()
+                limit = 0
+                if query.get("limit"):
+                    limit = int(str(query.get("limit")))
+                offset = 0
+                if query.get("offset"):
+                    offset = int(str(query.get("offset")))
+
+                domains = []
+                for key, value in query.items():
+                    if not (key == "limit" or key == "offset"):
+                        domains.append((key, "=", self.simplest_type(value)))
+                partner_records = request.env[str(model_name)].search_read(
+                    domains, fields, limit=limit, offset=offset
+                )
+
+                return Response(
+                    json.dumps({"records": self.sanitize_records(partner_records)})
+                )
+            if method == "POST":
+                if not option.is_post:
+                    raise NotImplementedError()
+                if not data or "values" not in data:
+                    raise ValueError("No Data Provided")
+
+                data = json.loads(request.httprequest.data)
                 new_resource = request.env[str(model_name)].create(data["values"])
                 partner_records = request.env[str(model_name)].search_read(
-                    domain=[("id", "=", new_resource.id)], fields=fields
+                    [("id", "=", new_resource.id)], fields
                 )
                 return Response(
                     json.dumps({"new_record": self.sanitize_records(partner_records)}),
                     status=201,
                 )
-            except Exception:
-                return Response(
-                    json.dumps({"message": "Invalid JSON Data"}), status=403
-                )
-        if method == "PUT":
-            if not option.is_put:
-                return Response(
-                    json.dumps(
-                        {
-                            "message": f"Method not allowed. Please contact your admininstrator to enable {method} method for {model_display_name} record."
-                        }
-                    ),
-                    status=405,
-                )
+            if method == "PUT":
+                if not option.is_put:
+                    raise NotImplementedError()
 
-            if "id" not in query:
-                return Response(json.dumps({"message": "No ID Provided"}), status=403)
-            if not data or "values" not in data:
-                return Response(json.dumps({"message": "No Data Provided"}), status=403)
+                if "id" not in query:
+                    raise ValueError("No ID Provided")
+                if not data or "values" not in data:
+                    raise ValueError("No Data Provided")
 
-            resource_id = str(query.get("id"))
-            resource = request.env[str(model_name)].browse(int(resource_id))
-            if not resource.exists():
-                return Response(
-                    json.dumps({"message": "Resource not found"}), status=404
-                )
+                resource_id = str(query.get("id"))
+                resource = request.env[str(model_name)].browse(int(resource_id))
+                if not resource.exists():
+                    raise ValueError("Resource not found")
 
-            try:
                 data = json.loads(request.httprequest.data)
                 resource.write(data["values"])
                 partner_records = request.env[str(model_name)].search_read(
-                    domain=[("id", "=", resource.id)], fields=fields
+                    [("id", "=", resource.id)], fields
                 )
                 return Response(
                     json.dumps(
                         {"updated_record": self.sanitize_records(partner_records)}
                     )
                 )
+            if method == "DELETE":
+                if not option.is_delete:
+                    raise NotImplementedError()
 
-            except Exception:
-                return Response(
-                    json.dumps({"message": "Invalid JSON value(s) passed"}),
-                    status=403,
+                if "id" not in query:
+                    raise ValueError("No ID Provided")
+
+                resource_id = str(query.get("id"))
+                resource = request.env[str(model_name)].browse(int(resource_id))
+                if not resource.exists():
+                    raise ValueError("Resource not found")
+
+                partner_records = request.env[str(model_name)].search_read(
+                    [("id", "=", resource.id)], fields
                 )
-        if method == "DELETE":
-            if not option.is_delete:
+                resource.unlink()
                 return Response(
                     json.dumps(
                         {
-                            "message": f"Method not allowed. Please contact your admininstrator to enable {method} method for {model_display_name} record."
+                            "message": "Resource deleted",
+                            "data": self.sanitize_records(partner_records),
                         }
                     ),
-                    status=405,
+                    status=202,
                 )
 
-            if "id" not in query:
-                return Response(json.dumps({"message": "No ID Provided"}), status=403)
-
-            resource_id = str(query.get("id"))
-            resource = request.env[str(model_name)].browse(int(resource_id))
-            if not resource.exists():
-                return Response(
-                    json.dumps({"message": "Resource not found"}), status=404
-                )
-
-            partner_records = request.env[str(model_name)].search_read(
-                domain=[("id", "=", resource.id)], fields=fields
-            )
-            resource.unlink()
+            # If not using any method above, simply return an error
+            raise NotImplementedError()
+        except ValueError as e:
+            return Response(json.dumps({"message": e.args[0]}), status=403)
+        except NotImplementedError as e:
             return Response(
                 json.dumps(
                     {
-                        "message": "Resource deleted",
-                        "data": self.sanitize_records(partner_records),
+                        "message": f"Method not allowed. {e.args[0]}Please contact your admininstrator to enable {method} method for {model_display_name or 'this'} record."
                     }
                 ),
-                status=202,
+                status=405,
             )
-
-        # If not using any method above, simply return an error
-        return Response(json.dumps({"message": "Method not allowed"}), status=405)
+        except Exception:
+            return Response(
+                json.dumps({"message": "Internal server error"}), status=500
+            )
 
     @http.route(
         ["/send_request"],
@@ -290,7 +262,7 @@ class RestApi(http.Controller):
             datas = json.dumps(
                 {"Status": "auth successful", "User": user.name, "api-key": api_key}
             )
-            return Response(datas, status=200)
+            return Response(datas)
         except Exception:
             return Response(
                 json.dumps({"message": "wrong login credentials"}), status=401

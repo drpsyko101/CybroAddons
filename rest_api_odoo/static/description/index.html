@@ -323,11 +323,15 @@
                 <li>The format for GET method will be like this - <code>http://cybrosys:8016/send_request?model=res.partner&Id=10.</code>
                 </li>
                 <li>We can specify the fields inside the JSON data, and it will
-                    be like this - <code>{"fields": ["name", "email"]}</code>.</li>
+                    be like this - <code>{"fields": ["name", "email"]}</code>.
+                    If no fields are passed , it will returns just the record's ID.
+                    To get all of the fields, set the fields to wildcard - <code>{"fields": ["*"]}</code>.
+                    Pagination can also be used by adding <code>{"limit": 10, "offset": 0}</code>
+                    to the query parameter above.
+                </li>
                 <li>This is the format of api response - <code>{"records": [{"id":
                     10, "email": "deco.addict82@example.com", "name": "Deco
-                    Addict"}]}</code>. If no fields are passed , it will returns
-                    just the record's ID. To get all of the fields, set the fields to wildcard - <code>{"fields": ["*"]}</code>.
+                    Addict"}]}</code>.
                 </li>
 
             </ul>
