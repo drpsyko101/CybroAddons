@@ -24,27 +24,43 @@ import json
 import logging
 
 from datetime import datetime
-from odoo import http
+from odoo import http, models
 from odoo.http import request, Response
 from ast import literal_eval
 
 _logger = logging.getLogger(__name__)
 
 
-class RestApi(http.Controller):
-    """This is a controller which is used to generate responses based on the
-    api requests"""
+class IrHttp(models.AbstractModel):
+    """This model is used to authenticate the api-key when sending a request"""
+    _inherit = "ir.http"
 
-    def auth_api_key(self, api_key):
+    @classmethod
+    def _auth_method_rest_api(cls):
         """This function is used to authenticate the api-key when sending a
         request"""
 
-        user_id = request.env["res.users"].search([("api_key", "=", api_key)])
-        if api_key is not None and user_id:
-            return Response(json.dumps({"message": "Authorized"}), status=200)
-        elif not user_id:
-            return Response(json.dumps({"message": "Invalid API Key"}), status=401)
-        return Response(json.dumps({"message": "No API Key Provided"}), status=400)
+        try:
+            api_key = request.httprequest.headers.get("Authorization").lstrip("Bearer ")
+            if not api_key:
+                raise PermissionError("Invalid API key provided.")
+
+            user_id = request.env["res.users.apikeys"]._check_credentials(
+                scope="rpc", key=api_key
+            )
+            request.update_env(user_id)
+        except Exception as e:
+            _logger.error(e)
+            return Response(
+                json.dumps({"message": e.args[0]}),
+                status=401,
+                content_type="application/json",
+            )
+
+
+class RestApi(http.Controller):
+    """This is a controller which is used to generate responses based on the
+    api requests"""
 
     def simplest_type(self, input):
         """Try cast input into native Python class, otherwise return as string"""
@@ -123,7 +139,8 @@ class RestApi(http.Controller):
                 )
 
                 return Response(
-                    json.dumps({"records": self.sanitize_records(partner_records)})
+                    json.dumps({"records": self.sanitize_records(partner_records)}),
+                    content_type="application/json",
                 )
             if method == "POST":
                 if not option.is_post:
@@ -139,6 +156,7 @@ class RestApi(http.Controller):
                 return Response(
                     json.dumps({"new_record": self.sanitize_records(partner_records)}),
                     status=201,
+                    content_type="application/json",
                 )
             if method == "PUT":
                 if not option.is_put:
@@ -162,7 +180,8 @@ class RestApi(http.Controller):
                 return Response(
                     json.dumps(
                         {"updated_record": self.sanitize_records(partner_records)}
-                    )
+                    ),
+                    content_type="application/json",
                 )
             if method == "DELETE":
                 if not option.is_delete:
@@ -188,12 +207,17 @@ class RestApi(http.Controller):
                         }
                     ),
                     status=202,
+                    content_type="application/json",
                 )
 
             # If not using any method above, simply return an error
             raise NotImplementedError()
         except ValueError as e:
-            return Response(json.dumps({"message": e.args[0]}), status=403)
+            return Response(
+                json.dumps({"message": e.args[0]}),
+                status=403,
+                content_type="application/json",
+            )
         except NotImplementedError as e:
             return Response(
                 json.dumps(
@@ -202,16 +226,20 @@ class RestApi(http.Controller):
                     }
                 ),
                 status=405,
+                content_type="application/json",
             )
-        except Exception:
+        except Exception as e:
+            _logger.error(e)
             return Response(
-                json.dumps({"message": "Internal server error"}), status=500
+                json.dumps({"message": f"Internal server error. {e.args[0]}"}),
+                status=500,
+                content_type="application/json",
             )
 
     @http.route(
         ["/send_request"],
         type="http",
-        auth="none",
+        auth="rest_api",
         methods=["GET", "POST", "PUT", "DELETE"],
         csrf=False,
     )
@@ -221,12 +249,7 @@ class RestApi(http.Controller):
         generate the result"""
 
         http_method = request.httprequest.method
-        api_key = request.httprequest.headers.get("api-key")
-        auth_api = self.auth_api_key(api_key)
         model = kw.pop("model")
-        username = request.httprequest.headers.get("login")
-        password = request.httprequest.headers.get("password")
-        request.session.authenticate(request.session.db, username, password)
         model_id = request.env["ir.model"].search([("model", "=", model)])
         if not model_id:
             return Response(
@@ -236,34 +259,7 @@ class RestApi(http.Controller):
                     }
                 ),
                 status=403,
+                content_type="application/json",
             )
 
-        if auth_api.status_code == 200:
-            result = self.generate_response(http_method, model=model_id.id, **kw)
-            return result
-        else:
-            return auth_api
-
-    @http.route(
-        ["/odoo_connect"], type="http", auth="none", csrf=False, methods=["GET"]
-    )
-    def odoo_connect(self, **kw):
-        """This is the controller which initializes the api transaction by
-        generating the api-key for specific user and database"""
-
-        username = request.httprequest.headers.get("login")
-        password = request.httprequest.headers.get("password")
-        db = request.httprequest.headers.get("db")
-        try:
-            request.session.update(http.get_default_session(), db=db)
-            auth = request.session.authenticate(request.session.db, username, password)
-            user = request.env["res.users"].browse(auth)
-            api_key = request.env.user.generate_api(username)
-            datas = json.dumps(
-                {"Status": "auth successful", "User": user.name, "api-key": api_key}
-            )
-            return Response(datas)
-        except Exception:
-            return Response(
-                json.dumps({"message": "wrong login credentials"}), status=401
-            )
+        return self.generate_response(http_method, model=model_id.id, **kw)
